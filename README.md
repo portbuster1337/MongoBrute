@@ -2,6 +2,8 @@
 
 MongoDB user enumeration tool. Unauthenticated attackers can determine whether a given user exists on a MongoDB instance through two independent vectors.
 
+> **Disclaimer:** This tool is for educational and authorized security testing purposes only. You must have explicit permission to test any MongoDB instance you target. Misuse of this tool may violate applicable laws. The authors are not responsible for any unauthorized or illegal use.
+
 ## Vectors
 
 ### `authenticate` command
@@ -18,9 +20,7 @@ When `saslSupportedMechs: "db.username"` is included in a `hello` command, the s
 - User exists → `saslSupportedMechs: ["SCRAM-SHA-256", "SCRAM-SHA-1"]`
 - User does not exist → field absent from response
 
-## Bug Bounty Status
-
-Submitted via [HackerOne](https://hackerone.com/mongodb). Both vectors fall under MongoDB's explicitly stated out-of-scope items:
+On [HackerOne](https://hackerone.com/mongodb). Both vectors fall under MongoDB's explicitly stated out-of-scope items:
 
 > Rate limiting or bruteforce issues on non-authentication endpoints  
 > SCRAM-SHA1 authentication mechanism's login credentials disclosure
@@ -55,6 +55,3 @@ python mongobrute.py -t 10.0.0.1 -w users.txt -o results.json
 | `--tls` | Use TLS |
 | `-o`, `--output` | Save results as JSON |
 
-## License
-
-MIT
