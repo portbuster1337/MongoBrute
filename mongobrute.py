@@ -247,9 +247,6 @@ def user_exists(host, port, tls, timeout, username, db):
         if code == 11 or "UserNotFound" in errmsg:
             sock.close()
             return False
-        if code == 18 or "AuthenticationFailed" in errmsg or "Authentication failed" in errmsg:
-            sock.close()
-            return True
         if code == 2 and "mechanism" in errmsg.lower():
             sock.close()
             return None
