@@ -116,17 +116,24 @@ def _bson_decode_document(view, pos):
             val = [arr[k] for k in sorted(arr, key=lambda x: int(x))]
         elif elem_type == 0x05:
             slen = struct.unpack_from('<i', view, pos)[0]; pos += 4
-            val = bytes(view[pos:pos+slen]); pos += slen + 5
+            subtype = view[pos]; pos += 1
+            val = bytes(view[pos:pos+slen]); pos += slen
+        elif elem_type == 0x07:
+            val = bytes(view[pos:pos+12]).hex(); pos += 12
         elif elem_type == 0x08:
             val = view[pos] == 1; pos += 1
+        elif elem_type == 0x09:
+            val = struct.unpack_from('<q', view, pos)[0]; pos += 8
         elif elem_type == 0x0a:
             val = None
         elif elem_type == 0x10:
             val = struct.unpack_from('<i', view, pos)[0]; pos += 4
+        elif elem_type == 0x11:
+            val = struct.unpack_from('<Q', view, pos)[0]; pos += 8
         elif elem_type == 0x12:
             val = struct.unpack_from('<q', view, pos)[0]; pos += 8
         else:
-            raise ValueError(f"Unknown BSON type: 0x{elem_type:02x}")
+            val = f"<BSON 0x{elem_type:02x}>"; pos += 1
         doc[name] = val
     return doc, end
 
@@ -183,7 +190,11 @@ def _db_cmd(sock, db, cmd, request_id=1):
     bson = _bson_encode({**cmd, "$db": db})
     msg = _make_op_msg(0, [(0, bson)], request_id)
     resp = _send_recv(sock, msg)
-    return _bson_parse(resp[20:])
+    flags = struct.unpack_from('<I', resp, 16)[0]
+    sec_kind = resp[20]
+    if sec_kind == 0:
+        return _bson_parse(resp[21:])
+    raise ValueError(f"Unexpected section kind: {sec_kind}")
 
 
 def hello(sock, db_user=None):
@@ -241,6 +252,7 @@ def main():
 
     args = parser.parse_args()
     print(BANNER)
+    sys.stdout.flush()
 
     host, _, port_str = args.target.partition(":")
     port = int(port_str) if port_str else 27017
@@ -261,6 +273,7 @@ def main():
     print(f"[*] Wordlist: {args.wordlist} ({len(usernames)} entries)")
     print(f"[*] Threads:  {args.threads}")
     print()
+    sys.stdout.flush()
 
     found = []
     total = len(usernames)
