@@ -47,6 +47,8 @@ The `buildInfo` command is accessible without authentication and reliably return
 
 The `hello` response may also include a `version` field on some configurations.
 
+The tool automatically fetches and displays the MongoDB version on startup via `buildInfo`.
+
 ## References
 
 - [`authentication_commands.cpp:132-145`](https://github.com/mongodb/mongo/blob/master/src/mongo/db/commands/authentication_commands.cpp) — `UserNotFound` rethrow
@@ -63,6 +65,7 @@ Zero dependencies — pure Python standard library.
 python mongobrute.py -t 10.0.0.1:27017 -w usernames.txt
 python mongobrute.py -t cluster.mongodb.net -w usernames.txt -T 32 --tls
 python mongobrute.py -t 10.0.0.1 -w users.txt -o results.json
+python mongobrute.py -t 10.0.0.1 -w users.txt -q        # quiet mode
 ```
 
 | Flag | Description |
