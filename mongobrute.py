@@ -214,6 +214,13 @@ def _cmd_error_code(resp):
     return resp.get("code") or 0
 
 
+def build_info(sock):
+    try:
+        return _db_cmd(sock, "admin", {"buildInfo": 1})
+    except Exception:
+        return None
+
+
 def authenticate(sock, db, user):
     cmd = {"authenticate": 1, "user": user, "mechanism": "SCRAM-SHA-256"}
     return _db_cmd(sock, db, cmd)
@@ -291,6 +298,17 @@ def main():
     print(f"[*] DB:       {args.db}")
     print(f"[*] Wordlist: {args.wordlist} ({len(usernames)} entries)")
     print(f"[*] Threads:  {args.threads}")
+
+    try:
+        vsock = _connect(host, port, args.tls, args.timeout)
+        bi = build_info(vsock)
+        vsock.close()
+        if bi and bi.get("ok") == 1.0:
+            print(f"[*] Version:  {bi.get('version', 'unknown')}")
+        else:
+            print("[*] Version:  unknown")
+    except Exception:
+        print("[*] Version:  unknown")
     print()
     sys.stdout.flush()
 
