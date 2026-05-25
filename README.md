@@ -12,10 +12,6 @@ Submitted to MongoDB's bug bounty program. Both vectors were marked **out of sco
 ## Usage
 
 ```bash
-pip install pymongo
-```
-
-```bash
 python mongobrute.py -t 10.0.0.1:27017 -w usernames.txt
 python mongobrute.py -t cluster.mongodb.net -w usernames.txt -T 32 --tls
 python mongobrute.py -t 10.0.0.1 -w users.txt -o results.json
