@@ -6,6 +6,8 @@ MongoDB user enumeration tool. Unauthenticated attackers can determine whether a
 
 ## Vectors
 
+Both commands declare `requiresAuth: false`, so they work without any prior authentication.
+
 ### `authenticate` command
 
 The legacy `authenticate` command handler in `authentication_commands.cpp` rethrows `ErrorCodes::UserNotFound` directly to the client. The SASL paths (`saslStart`/`saslContinue`) properly mask this, but the `authenticate` codepath does not.
@@ -13,12 +15,18 @@ The legacy `authenticate` command handler in `authentication_commands.cpp` rethr
 - User exists → `"Authentication failed."`
 - User does not exist → `"UserNotFound: Could not find user <username> for db <dbname>"`
 
+**Affects:** All versions from 3.6 to current (8.0). The leak path changed across versions but was never fixed — in 3.6–4.4 all non-auth errors propagate, in 5.0–6.0 there's no catch block at all, and in 7.0+ `UserNotFound` is explicitly rethrown.
+
+**Note:** The `authenticate` command uses a `mechanism` field. If the server doesn't support the requested mechanism (e.g., SCRAM-SHA-256 on older builds), the command fails with a mechanism error and the user's existence cannot be determined via this vector.
+
 ### `saslSupportedMechs` in `hello`
 
-When `saslSupportedMechs: "db.username"` is included in a `hello` command, the server returns the user's supported SASL mechanisms only if the user exists. If the user doesn't exist, the field is absent.
+Available since MongoDB 4.2. When `saslSupportedMechs: "db.username"` is included in a `hello` command, the server returns the user's supported SASL mechanisms only if the user exists. If the user doesn't exist, the field is absent.
 
 - User exists → `saslSupportedMechs: ["SCRAM-SHA-256", "SCRAM-SHA-1"]`
 - User does not exist → field absent from response
+
+**Note:** Some proxies, mongos routers, or non-standard MongoDB implementations may not forward or include `saslSupportedMechs` in the response, making this vector unavailable.
 
 On [HackerOne](https://hackerone.com/mongodb). Both vectors fall under MongoDB's explicitly stated out-of-scope items:
 
