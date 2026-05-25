@@ -274,11 +274,13 @@ def main():
     parser.add_argument("-T", "--threads", type=int, default=16, help="Threads (default: 16)")
     parser.add_argument("--timeout", type=int, default=5, help="Connection timeout in seconds (default: 5)")
     parser.add_argument("--tls", action="store_true", help="Use TLS")
+    parser.add_argument("-q", "--quiet", action="store_true", help="Only output found usernames")
     parser.add_argument("-o", "--output", help="Save results as JSON")
 
     args = parser.parse_args()
-    print(BANNER)
-    sys.stdout.flush()
+    if not args.quiet:
+        print(BANNER)
+        sys.stdout.flush()
 
     host, _, port_str = args.target.partition(":")
     port = int(port_str) if port_str else 27017
@@ -294,23 +296,24 @@ def main():
         print("[-] Wordlist is empty")
         sys.exit(1)
 
-    print(f"[*] Target:   {host}:{port}")
-    print(f"[*] DB:       {args.db}")
-    print(f"[*] Wordlist: {args.wordlist} ({len(usernames)} entries)")
-    print(f"[*] Threads:  {args.threads}")
-
+    version_str = "unknown"
     try:
         vsock = _connect(host, port, args.tls, args.timeout)
         bi = build_info(vsock)
         vsock.close()
         if bi and bi.get("ok") == 1.0:
-            print(f"[*] Version:  {bi.get('version', 'unknown')}")
-        else:
-            print("[*] Version:  unknown")
+            version_str = bi.get("version", "unknown")
     except Exception:
-        print("[*] Version:  unknown")
-    print()
-    sys.stdout.flush()
+        pass
+
+    if not args.quiet:
+        print(f"[*] Target:        {host}:{port}")
+        print(f"[*] DB:            {args.db}")
+        print(f"[*] Wordlist:      {args.wordlist} ({len(usernames)} entries)")
+        print(f"[*] Threads:       {args.threads}")
+        print(f"[*] MongoDB version: {version_str}")
+        print()
+        sys.stdout.flush()
 
     found = []
     total = len(usernames)
@@ -335,18 +338,22 @@ def main():
                 username, exists = f.result()
                 if exists:
                     found.append(username)
-                    print(f"\r{' ' * 60}\r  [+] {username} (EXISTS)")
+                    if not args.quiet:
+                        print(f"\r{' ' * 60}\r  [+] {username} (EXISTS)")
             except Exception:
                 pass
 
-    print(f"\r{' ' * 60}\r")
-
     if found:
-        print(f"[+] Found {len(found)} user(s):")
-        for u in found:
-            print(f"    {u}")
+        if not args.quiet:
+            print(f"  [+] Found {len(found)} user(s)")
+        else:
+            for u in found:
+                print(u)
     else:
-        print("[-] No users found")
+        msg = "couldn't find any usernames"
+        if version_str != "unknown":
+            msg += f" (MongoDB {version_str})"
+        print(msg)
 
     if args.output and found:
         with open(args.output, "w") as f:

@@ -73,5 +73,6 @@ python mongobrute.py -t 10.0.0.1 -w users.txt -o results.json
 | `-T`, `--threads` | Threads (default: 16) |
 | `--timeout` | Seconds (default: 5) |
 | `--tls` | Use TLS |
+| `-q`, `--quiet` | Only output found usernames (or "couldn't find any usernames") |
 | `-o`, `--output` | Save results as JSON |
 
