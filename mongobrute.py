@@ -204,8 +204,18 @@ def hello(sock, db_user=None):
     return _db_cmd(sock, "admin", cmd)
 
 
+def _cmd_ok(resp):
+    """Check if a command response indicates success (ok=1)."""
+    return resp.get("ok") == 1.0 or resp.get("ok") == 1
+
+
+def _cmd_error_code(resp):
+    """Extract error code from a command failure response."""
+    return resp.get("code") or 0
+
+
 def authenticate(sock, db, user):
-    cmd = {"authenticate": 1, "user": user, "mechanism": "SCRAM-SHA-256", "db": db}
+    cmd = {"authenticate": 1, "user": user, "mechanism": "SCRAM-SHA-256"}
     return _db_cmd(sock, db, cmd)
 
 
@@ -221,17 +231,26 @@ def user_exists(host, port, tls, timeout, username, db):
             sock.close()
             return True
 
-        try:
-            authenticate(sock, db, username)
+        resp = authenticate(sock, db, username)
+        if _cmd_ok(resp):
             sock.close()
             return True
-        except Exception as e:
-            msg = str(e)
-            if "UserNotFound" in msg:
-                sock.close()
-                return False
+        code = _cmd_error_code(resp)
+        errmsg = resp.get("errmsg", "")
+        if code == 11 or "UserNotFound" in errmsg:
+            sock.close()
+            return False
+        if code == 18 or "AuthenticationFailed" in errmsg or "Authentication failed" in errmsg:
             sock.close()
             return True
+        if code == 2 and "mechanism" in errmsg.lower():
+            sock.close()
+            return None
+        if code == 40415 or "unknown field" in errmsg.lower():
+            sock.close()
+            return None
+        sock.close()
+        return None
     except Exception:
         try:
             sock.close()
