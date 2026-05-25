@@ -8,6 +8,8 @@ MongoDB user enumeration tool. Unauthenticated attackers can determine whether a
 
 Both commands declare `requiresAuth: false`, so they work without any prior authentication.
 
+**Important condition:** Both vectors require **authentication to be enabled** on the target server. If auth is disabled (`--noauth`), the server has no user database and no authentication mechanisms registered — neither vector returns useful results.
+
 ### `authenticate` command
 
 The legacy `authenticate` command handler in `authentication_commands.cpp` rethrows `ErrorCodes::UserNotFound` directly to the client. The SASL paths (`saslStart`/`saslContinue`) properly mask this, but the `authenticate` codepath does not.
@@ -34,6 +36,16 @@ On [HackerOne](https://hackerone.com/mongodb). Both vectors fall under MongoDB's
 > SCRAM-SHA1 authentication mechanism's login credentials disclosure
 
 User enumeration via authentication responses is also covered by their accepted-risk stance on informational disclosures.
+
+## Checking the Server Version
+
+The `buildInfo` command is accessible without authentication and reliably returns the version:
+
+```javascript
+{ buildInfo: 1 }
+```
+
+The `hello` response may also include a `version` field on some configurations.
 
 ## References
 
